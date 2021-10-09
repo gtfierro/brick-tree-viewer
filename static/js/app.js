@@ -32,6 +32,7 @@ const app = Vue.createApp({
     return {
       treeData: treeData,
       current_url: {processing: ''},
+      count: 0,
     }
   },
   created: function() {
@@ -56,20 +57,21 @@ const app = Vue.createApp({
             this.treeData.isOpen = true;
         })
         .then(() => self.populateClasses())
-        .then(() => this.processing_url(''));
+        .then(() => self.processing_url(''));
   },
   methods: {
     processing_url: function(url) {
-        console.log("expand", url);
+        console.log(url);
         this.current_url.processing = url;
+        this.$forceUpdate();
     },
     populateClasses: function() {
         this.expandClass(this.treeData, true);
-        this.$forceUpdate();
     },
-    expandClass: function(item, expandAll) {
+    expandClass: async function(item, expandAll) {
         // if children already populated, no need to update
         if (item.children?.length > 0) {
+            console.log("cached!");
             return
         }
         this.processing_url(item.name);
@@ -107,8 +109,9 @@ const app = Vue.createApp({
                 this.expandClass(child, expandAll);
             }
         }
+        //this.processing_url('');
     },
-    addInstances: function(item) {
+    addInstances: async function(item) {
         this.processing_url(item.name);
         var query = `
         PREFIX brick: <https://brickschema.org/schema/Brick#>
@@ -119,8 +122,10 @@ const app = Vue.createApp({
             ?item rdf:type <${item.name}>
         }`
         for (let binding of store.query(query)) {
-            this.$root.addInstance(item, binding.get("item").value);
+            this.count++;
+            this.addInstance(item, binding.get("item").value);
         }
+        //this.processing_url('');
     },
     addClass: function(item, text, instances) {
       let parts = text.split(/[\/#]/);
