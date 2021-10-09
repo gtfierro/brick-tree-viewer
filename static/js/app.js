@@ -31,6 +31,7 @@ const app = Vue.createApp({
   data: function() {
     return {
       treeData: treeData,
+      current_url: {processing: ''},
     }
   },
   created: function() {
@@ -53,23 +54,76 @@ const app = Vue.createApp({
         .then(() => {
             console.log("Loaded building");
             this.treeData.isOpen = true;
-        });
-        //.then(() => self.populateClasses());
+        })
+        .then(() => self.populateClasses())
+        .then(() => this.processing_url(''));
   },
   methods: {
-    //populateClasses: function() {
-    //    var binding = null;
-    //    for (binding of store.query(rootClassQuery)) {
-    //        console.log(binding);
-    //        this.addClass(this.treeData, binding.get("class").value);
-    //    }
-    //},
-    addItem: function(item) {
-        console.log(item);
+    processing_url: function(url) {
+        console.log("expand", url);
+        this.current_url.processing = url;
+    },
+    populateClasses: function() {
+        this.expandClass(this.treeData, true);
+        this.$forceUpdate();
+    },
+    expandClass: function(item, expandAll) {
+        // if children already populated, no need to update
+        if (item.children?.length > 0) {
+            return
+        }
+        this.processing_url(item.name);
+        var query = `
+        PREFIX brick: <https://brickschema.org/schema/Brick#>
+        PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+        PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+        PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+        SELECT DISTINCT ?class ?item WHERE {
+            ?class rdfs:subClassOf <${item.name}> .
+            ?item rdf:type/rdfs:subClassOf* ?class
+        }`
+        var counts = {};
+        for (let binding of store.query(query)) {
+            let uri = binding.get("class").value;
+            if (counts[uri] == null) {
+                counts[uri] = []
+            }
+            counts[uri].push(binding.get("item"));
+        }
+        let foundAny = false;
+        for (const [uri, instances] of Object.entries(counts)) {
+            foundAny = true;
+            //console.log(uri, instances.length);
+            this.addClass(item, uri, instances);
+        }
+
+        if (!foundAny) {
+            this.addInstances(item);
+        }
+
+        // if only one child was expanded, continue expanding the tree
+        if (item.children?.length == 1 || expandAll) {
+            for (let child of item.children ?? []) {
+                this.expandClass(child, expandAll);
+            }
+        }
+    },
+    addInstances: function(item) {
+        this.processing_url(item.name);
+        var query = `
+        PREFIX brick: <https://brickschema.org/schema/Brick#>
+        PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+        PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+        PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+        SELECT DISTINCT ?item WHERE {
+            ?item rdf:type <${item.name}>
+        }`
+        for (let binding of store.query(query)) {
+            this.$root.addInstance(item, binding.get("item").value);
+        }
     },
     addClass: function(item, text, instances) {
       let parts = text.split(/[\/#]/);
-      console.log(parts);
       item.children.push({
           name: text,
           disp: parts[parts.length-1],
@@ -79,7 +133,7 @@ const app = Vue.createApp({
       });
     },
     addInstance: function(item, instance) {
-      item.children.push({
+      item.children?.push({
           name: instance,
           disp: instance,
           isInstance: true,
@@ -114,59 +168,8 @@ app.component("tree-item", {
       } else {
           // To get something working I had to make everything "isFolder == true"
         this.isOpen = !this.isOpen;
-        this.expandClass(this.item);
+        this.$root.expandClass(this.item, false);
       }
-    },
-    expandClass: function(item) {
-        console.log("expand", item);
-        var query = `
-        PREFIX brick: <https://brickschema.org/schema/Brick#>
-        PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>        
-        PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-        PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
-        SELECT DISTINCT ?class ?item WHERE { 
-            ?class rdfs:subClassOf <${item.name}> .
-            ?item rdf:type/rdfs:subClassOf* ?class
-        }`
-        var counts = {};
-        for (let binding of store.query(query)) {
-            let uri = binding.get("class").value;
-            if (counts[uri] == null) {
-                counts[uri] = []
-            }
-            counts[uri].push(binding.get("item"));
-            console.log(uri);
-        }
-        let foundAny = false;
-        for (const [uri, instances] of Object.entries(counts)) {
-            foundAny = true;
-            console.log(uri, instances.length);
-            this.$root.addClass(item, uri, instances);
-        }
-
-        if (!foundAny) {
-            this.addInstances(item);
-        }
-
-        // if only one child was expanded, continue expanding the tree
-        if (item.children?.length == 1) {
-            console.log(item.children[0]);
-            this.expandClass(item.children[0]);
-        }
-
-    },
-    addInstances: function(item) {
-        var query = `
-        PREFIX brick: <https://brickschema.org/schema/Brick#>
-        PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>        
-        PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-        PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
-        SELECT DISTINCT ?item WHERE { 
-            ?item rdf:type <${item.name}>
-        }`
-        for (let binding of store.query(query)) {
-            this.$root.addInstance(item, binding.get("item").value);
-        }
     },
   }
 })

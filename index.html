@@ -29,6 +29,7 @@
 	<p>(You can double click on an item to turn it into a folder.)</p>
 	<div id="demo">
 		<input id="file-input" @change="handleFile($event.target.files)" type="file">
+        <span v-if="current_url.processing.length > 0"><p><b>Currently loading class: {{ current_url.processing }}</b></p></span>
 		<ul>
 		  <tree-item
 			class="item"
