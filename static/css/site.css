@@ -14,5 +14,22 @@ ul {
   padding-left: 1em;
 }
 
-li {
+.wrapper {
+    display: grid;
+    grid-gap: 10px;
+    grid-template-columns: 30% 100%;
+}
+
+.col1 {
+    grid-column: 1 / 2;
+}
+.col2 {
+    padding-top: 30px;
+    grid-column: 2 / 2;
+}
+
+.no-bullets {
+    list-style-type: none; /* Remove bullets */
+    padding: 0; /* Remove padding */
+    margin: 0; /* Remove margins */
 }

@@ -1,6 +1,7 @@
 import init, {MemoryStore} from "./pkg/oxigraph.js";
 var store = '';
 
+
 // demo data
 var treeData = {
   name: "https://brickschema.org/schema/Brick#Class",
@@ -31,7 +32,8 @@ const app = Vue.createApp({
   data: function() {
     return {
       treeData: treeData,
-      current_url: {processing: ''},
+      processing_url: {url: ''},
+      inspect_url: {url: ''},
       count: 0,
     }
   },
@@ -57,16 +59,20 @@ const app = Vue.createApp({
             this.treeData.isOpen = true;
         })
         .then(() => self.populateClasses())
-        .then(() => self.processing_url(''));
+        .then(() => self.set_processing_url(''));
   },
   methods: {
-    processing_url: function(url) {
+    set_processing_url: function(url) {
         console.log(url);
-        this.current_url.processing = url;
+        this.processing_url.url = url;
         this.$forceUpdate();
     },
+    getURIValue: function (uri) {
+        let parts = uri.split(/[\/#]/);
+        return parts[parts.length-1];
+    },
     populateClasses: function() {
-        this.expandClass(this.treeData, true);
+        this.expandClass(this.treeData, false);
     },
     expandClass: async function(item, expandAll) {
         // if children already populated, no need to update
@@ -74,7 +80,7 @@ const app = Vue.createApp({
             console.log("cached!");
             return
         }
-        this.processing_url(item.name);
+        this.set_processing_url(item.name);
         var query = `
         PREFIX brick: <https://brickschema.org/schema/Brick#>
         PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
@@ -105,14 +111,15 @@ const app = Vue.createApp({
 
         // if only one child was expanded, continue expanding the tree
         if (item.children?.length == 1 || expandAll) {
+            console.log("expanding on", item.children[0].name);
             for (let child of item.children ?? []) {
                 this.expandClass(child, expandAll);
             }
         }
-        //this.processing_url('');
+        //this.set_processing_url('');
     },
     addInstances: async function(item) {
-        this.processing_url(item.name);
+        this.set_processing_url(item.name);
         var query = `
         PREFIX brick: <https://brickschema.org/schema/Brick#>
         PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
@@ -125,13 +132,12 @@ const app = Vue.createApp({
             this.count++;
             this.addInstance(item, binding.get("item").value);
         }
-        //this.processing_url('');
+        //this.set_processing_url('');
     },
     addClass: function(item, text, instances) {
-      let parts = text.split(/[\/#]/);
       item.children.push({
           name: text,
-          disp: parts[parts.length-1],
+          disp: this.getURIValue(text),
           count: instances.length,
           children: [],
           isInstance: false,
@@ -170,6 +176,7 @@ app.component("tree-item", {
       console.log("toggle!", this.item);
       if (this.item.isInstance) {
           console.log("investigate", this.item.name);
+          this.$root.inspect_url.url = this.item.name;
       } else {
           // To get something working I had to make everything "isFolder == true"
         this.isOpen = !this.isOpen;
@@ -177,6 +184,47 @@ app.component("tree-item", {
       }
     },
   }
+})
+
+app.component("instance-info", {
+    props: {
+        url: String
+    },
+    computed: {
+        details: function() {
+            var query = `
+            PREFIX brick: <https://brickschema.org/schema/Brick#>
+            PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+            PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+            PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+            SELECT DISTINCT ?prop ?val WHERE {
+               <${this.url}> ?prop ?val
+            }`
+            let props = {};
+            console.log(query);
+            for (let binding of store.query(query)) {
+                let prop = binding.get("prop").value;
+                if (props[prop] == null) {
+                    props[prop] = []
+                }
+                let val = binding.get("val").value;
+                props[prop].push(val);
+            }
+            return props;
+        }
+    },
+    template: `
+        <div>
+        <i>{{ url }}</i>
+        <ul>
+            <li v-for="(vals, prop) in details"><b>{{ this.$root.getURIValue(prop) }}:</b>
+                <ul class="no-bullets">
+                    <li v-for="val in vals"><i>{{ val }}</i></li>
+                </ul>
+            </li>
+        </ul>
+        </div>
+    `
 })
 
 app.mount('#demo')

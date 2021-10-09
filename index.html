@@ -26,9 +26,10 @@
 	</script>
   </head>
   <body>
-	<div id="demo">
+	<div id="demo" class="wrapper">
+        <div class="col1">
 		<input id="file-input" @change="handleFile($event.target.files)" type="file">
-        <p><b>Currently loading class: {{ current_url.processing }}</b></p>
+        <p><b>Currently loading class: {{ processing_url.url }}</b></p>
         <i>{{ count }} instances</i>
 		<ul>
 		  <tree-item
@@ -37,6 +38,10 @@
 			@add-item="addItem"
 			></tree-item>
 		</ul>
+        </div>
+        <div class="col2">
+            <instance-info :url="inspect_url.url"></instance-info>
+        </div>
 	</div>
   </body>
   <script src="static/js/vue.global.prod.js"></script>
