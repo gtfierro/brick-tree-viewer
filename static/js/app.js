@@ -197,29 +197,48 @@ app.component("instance-info", {
             PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
             PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
             PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
-            SELECT DISTINCT ?prop ?val WHERE {
-               <${this.url}> ?prop ?val
+            SELECT DISTINCT ?prop ?val ?sp ?sv WHERE {
+               <${this.url}> ?prop ?val .
+               OPTIONAL { ?prop a brick:EntityProperty . ?val ?sp ?sv }
             }`
             let props = {};
+            let entprops = {};
             console.log(query);
             for (let binding of store.query(query)) {
-                let prop = binding.get("prop").value;
-                if (props[prop] == null) {
-                    props[prop] = []
-                }
                 let val = binding.get("val").value;
-                props[prop].push(val);
+                let prop = binding.get("prop").value;
+                let sp = binding.get("sp")?.value;
+                let sv = binding.get("sv")?.value;
+                console.log(prop, "|", val, "|", sp, "|", sv);
+                if (sp != null && sv != null) {
+                    if (entprops[prop] == null) {
+                        entprops[prop] = {};
+                    }
+                    entprops[prop][sp] = sv
+                } else {
+                    if (props[prop] == null) {
+                        props[prop] = [];
+                    }
+                    props[prop].push(val);
+                }
+
             }
-            return props;
+            console.log(props);
+            return [props, entprops];
         }
     },
     template: `
         <div>
         <i>{{ url }}</i>
         <ul>
-            <li v-for="(vals, prop) in details"><b>{{ this.$root.getURIValue(prop) }}:</b>
+            <li v-for="(vals, prop) in details[0]"><b>{{ this.$root.getURIValue(prop) }}:</b>
                 <ul class="no-bullets">
                     <li v-for="val in vals"><i>{{ val }}</i></li>
+                </ul>
+            </li>
+            <li v-for="(subprops, entprop) in details[1]"><b>{{ this.$root.getURIValue(entprop) }}:</b>
+                <ul class="no-bullets">
+                    <li v-for="(val, subprop) in subprops">{{ subprop }}: <i>{{ val }}</i></li>
                 </ul>
             </li>
         </ul>
