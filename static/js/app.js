@@ -203,13 +203,11 @@ app.component("instance-info", {
             }`
             let props = {};
             let entprops = {};
-            console.log(query);
             for (let binding of store.query(query)) {
                 let val = binding.get("val").value;
                 let prop = binding.get("prop").value;
                 let sp = binding.get("sp")?.value;
                 let sv = binding.get("sv")?.value;
-                console.log(prop, "|", val, "|", sp, "|", sv);
                 if (sp != null && sv != null) {
                     if (entprops[prop] == null) {
                         entprops[prop] = {};
