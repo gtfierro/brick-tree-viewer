@@ -28,7 +28,9 @@
   <body>
 	<div id="demo" class="wrapper">
         <div class="col1">
-		<input id="file-input" @change="handleFile($event.target.files)" type="file">
+            <!--<input id="file-input" @change="handleFile($event.target.files)" type="file">-->
+        <span v-if="!pre_propulated.val"><p><i>This is faster, but takes some time to process</i></p></span>
+        <button @click="populateClasses()">Pre-populate</button>
         <p><b>Currently loading class: {{ processing_url.url }}</b></p>
         <i>{{ count }} instances</i>
 		<ul>

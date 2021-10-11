@@ -1,5 +1,6 @@
 import init, {MemoryStore} from "./pkg/oxigraph.js";
 var store = '';
+var visited = new Set();
 
 
 // demo data
@@ -28,12 +29,17 @@ var treeData = {
   ]
 };
 
+function contains(arr, uri) {
+    return arr.filter((val) => val.name == uri).length > 0
+}
+
 const app = Vue.createApp({
   data: function() {
     return {
       treeData: treeData,
       processing_url: {url: ''},
       inspect_url: {url: ''},
+      pre_propulated: {val: false},
       count: 0,
     }
   },
@@ -57,9 +63,7 @@ const app = Vue.createApp({
         .then(() => {
             console.log("Loaded building");
             this.treeData.isOpen = true;
-        })
-        .then(() => self.populateClasses())
-        .then(() => self.set_processing_url(''));
+        });
   },
   methods: {
     set_processing_url: function(url) {
@@ -71,52 +75,48 @@ const app = Vue.createApp({
         let parts = uri.split(/[\/#]/);
         return parts[parts.length-1];
     },
-    populateClasses: function() {
-        this.expandClass(this.treeData, false);
+    populateClasses: async function() {
+        this.pre_propulated.val = false;
+        await this.expandClass(this.treeData, true);
+        this.set_processing_url('');
     },
     expandClass: async function(item, expandAll) {
         // if children already populated, no need to update
-        if (item.children?.length > 0) {
-            console.log("cached!");
-            return
-        }
-        this.set_processing_url(item.name);
-        var query = `
-        PREFIX brick: <https://brickschema.org/schema/Brick#>
-        PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-        PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-        PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
-        SELECT DISTINCT ?class ?item WHERE {
-            ?class rdfs:subClassOf <${item.name}> .
-            ?item rdf:type/rdfs:subClassOf* ?class
-        }`
-        var counts = {};
-        for (let binding of store.query(query)) {
-            let uri = binding.get("class").value;
-            if (counts[uri] == null) {
-                counts[uri] = []
+        if (!visited.has(item.name)) {
+            this.set_processing_url(item.name);
+            var query = `
+            PREFIX brick: <https://brickschema.org/schema/Brick#>
+            PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+            PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+            PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+            SELECT DISTINCT ?class ?item WHERE {
+                ?class rdfs:subClassOf <${item.name}> .
+                ?item rdf:type/rdfs:subClassOf* ?class
+            }`
+            var counts = {};
+            for (let binding of store.query(query)) {
+                let uri = binding.get("class").value;
+                if (counts[uri] == null) {
+                    counts[uri] = []
+                }
+                counts[uri].push(binding.get("item"));
             }
-            counts[uri].push(binding.get("item"));
-        }
-        let foundAny = false;
-        for (const [uri, instances] of Object.entries(counts)) {
-            foundAny = true;
-            //console.log(uri, instances.length);
-            this.addClass(item, uri, instances);
+            for (const [uri, instances] of Object.entries(counts)) {
+                //console.log(uri, instances.length);
+                this.addClass(item, uri, instances);
+            }
+            visited.add(item.name);
         }
 
-        if (!foundAny) {
-            this.addInstances(item);
-        }
-
+        this.addInstances(item);
         // if only one child was expanded, continue expanding the tree
+        console.log("expand?", item.name, item.children?.length);
         if (item.children?.length == 1 || expandAll) {
-            console.log("expanding on", item.children[0].name);
             for (let child of item.children ?? []) {
                 this.expandClass(child, expandAll);
             }
         }
-        //this.set_processing_url('');
+        this.set_processing_url('');
     },
     addInstances: async function(item) {
         this.set_processing_url(item.name);
@@ -132,9 +132,12 @@ const app = Vue.createApp({
             this.count++;
             this.addInstance(item, binding.get("item").value);
         }
-        //this.set_processing_url('');
+        this.set_processing_url('');
     },
     addClass: function(item, text, instances) {
+      if (contains(item.children, text)) {
+          return
+      }
       item.children.push({
           name: text,
           disp: this.getURIValue(text),
@@ -144,6 +147,9 @@ const app = Vue.createApp({
       });
     },
     addInstance: function(item, instance) {
+      if (contains(item.children, instance)) {
+          return
+      }
       item.children?.push({
           name: instance,
           disp: instance,
@@ -199,8 +205,13 @@ app.component("instance-info", {
             PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
             SELECT DISTINCT ?prop ?val ?sp ?sv WHERE {
                <${this.url}> ?prop ?val .
-               OPTIONAL { ?prop a brick:EntityProperty . ?val ?sp ?sv }
+               OPTIONAL {
+               { ?prop rdfs:range brick:TimeseriesReference . }
+                UNION
+               { ?prop a brick:EntityProperty . }
+                ?val ?sp ?sv }
             }`
+            // TODO make the above query less restrictive; not just entityproperty!
             let props = {};
             let entprops = {};
             for (let binding of store.query(query)) {
@@ -236,7 +247,7 @@ app.component("instance-info", {
             </li>
             <li v-for="(subprops, entprop) in details[1]"><b>{{ this.$root.getURIValue(entprop) }}:</b>
                 <ul class="no-bullets">
-                    <li v-for="(val, subprop) in subprops">{{ subprop }}: <i>{{ val }}</i></li>
+                    <li v-for="(val, subprop) in subprops">{{ this.$root.getURIValue(subprop) }}: <i>{{ val }}</i></li>
                 </ul>
             </li>
         </ul>

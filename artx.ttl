@@ -580,3 +580,4 @@ ns2:chiller a brick:Chiller ;
         ns2:ARTX.CHW.Loop_Chilled_Water_Supply_Temp,
         ns4:Stop .
 
+ns2:camera a brick:Surveillance_Camera .

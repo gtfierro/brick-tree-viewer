@@ -17,7 +17,7 @@ ul {
 .wrapper {
     display: grid;
     grid-gap: 10px;
-    grid-template-columns: 30% 100%;
+    grid-template-columns: 40% 100%;
 }
 
 .col1 {
