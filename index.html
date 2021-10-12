@@ -8,10 +8,10 @@
 	<script type="text/x-template" id="item-template">
 	  <li>
 		<div
-			 :class="{bold: item.isInstance}"
-			 @click="toggle">
+			 :class="{bold: item.name == $root.inspect_url.url}"
+             @click="inspect">
           {{ item.disp }} <span v-if="item.count > 0">({{ item.count }} instances)</span>
-          <span v-if="!item.isInstance">[{{ isOpen ? '-' : '+' }}]</span>
+          <span v-if="item.expandable" @click="toggle">[{{ isOpen ? '-' : '+' }}]</span>
 		</div>
 		<ul v-show="isOpen" v-if="!item.isInstance">
 		  <tree-item
