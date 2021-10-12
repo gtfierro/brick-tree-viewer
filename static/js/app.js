@@ -56,11 +56,21 @@ var instanceRelationClass = (src, path) => `
             ?item rdf:type ?group .
         }`;
 
+//var hierarchy = [
+//    (_) => getInstances("https://brickschema.org/schema/Brick#Air_Handler_Unit"),
+//    (src) => instanceRelationInstance(src, "brick:feeds"),
+//    (src) => instanceRelationClass(src, "brick:hasPoint"),
+//    (src) => getScopedInstances(src),
+//];
+//
 var hierarchy = [
-    (_) => getInstances("https://brickschema.org/schema/Brick#Air_Handler_Unit"),
-    (src) => instanceRelationInstance(src, "brick:feeds"),
-    (src) => instanceRelationClass(src, "brick:hasPoint"),
-    (src) => getScopedInstances(src),
+    (src) => subClassOf(src),
+    (src) => subClassOf(src),
+    (src) => subClassOf(src),
+    (src) => subClassOf(src),
+    (src) => subClassOf(src),
+    (src) => subClassOf(src),
+    (src) => subClassOf(src),
 ];
 
 

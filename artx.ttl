@@ -581,3 +581,4 @@ ns2:chiller a brick:Chiller ;
         ns4:Stop .
 
 ns2:camera a brick:Surveillance_Camera .
+ns2:temp a brick:Temperature_Sensor .
