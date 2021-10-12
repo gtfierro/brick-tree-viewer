@@ -39,3 +39,10 @@ ul {
     padding: 0; /* Remove padding */
     margin: 0; /* Remove margins */
 }
+.footer {
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  padding-top: 500px;
+  text-align: center;
+}
