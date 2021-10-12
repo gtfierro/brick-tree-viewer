@@ -133,7 +133,7 @@ const app = Vue.createApp({
         });
         //.then(() => {
         //    console.log("Loaded Brick");
-        //    return fetch("artx.ttl");
+        //    return fetch("bldg.ttl");
         //})
         //.then(resp => resp.text())
         //.then(t => {
