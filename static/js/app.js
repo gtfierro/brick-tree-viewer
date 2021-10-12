@@ -129,16 +129,20 @@ const app = Vue.createApp({
         })
         .then(() => {
             console.log("Loaded Brick");
-            return fetch("artx.ttl");
-        })
-        .then(resp => resp.text())
-        .then(t => {
-            store.load(t, "text/turtle")
-        })
-        .then(() => {
-            console.log("Loaded building");
             this.treeData.isOpen = true;
         });
+        //.then(() => {
+        //    console.log("Loaded Brick");
+        //    return fetch("artx.ttl");
+        //})
+        //.then(resp => resp.text())
+        //.then(t => {
+        //    store.load(t, "text/turtle")
+        //})
+        //.then(() => {
+        //    console.log("Loaded building");
+        //    this.treeData.isOpen = true;
+        //});
   },
   methods: {
     set_processing_url: function(url) {
@@ -233,8 +237,12 @@ const app = Vue.createApp({
           level: item.level+1,
       });
     },
-    handleFile: function(e, f) {
-        console.log(f);
+    handleFile: function(files) {
+        for (let file of files) {
+            file.text()
+                .then((t) => store.load(t, "text/turtle"))
+                .then(() => console.log("finished loading file"));
+        }
     }
   }
 })
