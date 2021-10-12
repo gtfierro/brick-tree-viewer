@@ -157,6 +157,7 @@ const app = Vue.createApp({
         this.pre_propulated.val = false;
         await this.expandClass(this.treeData, true);
         this.set_processing_url('');
+        this.pre_propulated.val = true;
     },
     expandClass: async function(item, expandAll) {
         // if children already populated, no need to update
@@ -243,6 +244,11 @@ const app = Vue.createApp({
                 .then((t) => store.load(t, "text/turtle"))
                 .then(() => console.log("finished loading file"));
         }
+    },
+    handleURL: function() {
+        fetch(document.getElementById("url-input").value)
+            .then((t) => store.load(t, "text/turtle"))
+            .then(() => console.log("finished loading file"));
     }
   }
 })
