@@ -43,7 +43,7 @@
         </p>
         <p>
             <label for="url-input">URL Fetch (.ttl): </label>
-            <input id="url-input" type="text">
+            <input id="url-input" type="text" value="bldg.ttl">
             <button @click="handleURL($event.target.value)">Submit</button>
         </p>
         <span v-if="!pre_propulated.val">

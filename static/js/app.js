@@ -247,6 +247,7 @@ const app = Vue.createApp({
     },
     handleURL: function() {
         fetch(document.getElementById("url-input").value)
+            .then((resp) => resp.text())
             .then((t) => store.load(t, "text/turtle"))
             .then(() => console.log("finished loading file"));
     }
