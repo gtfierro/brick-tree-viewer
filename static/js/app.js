@@ -238,7 +238,8 @@ const app = Vue.createApp({
           level: item.level+1,
       });
     },
-    handleFile: function(files) {
+    handleFile: function() {
+        let files = document.getElementById('file-input').files;
         for (let file of files) {
             file.text()
                 .then((t) => store.load(t, "text/turtle"))
